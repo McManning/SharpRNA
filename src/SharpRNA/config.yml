@@ -1,0 +1,105 @@
+---
+# Repository and version range to load
+repository: https://github.com/sobotka/blender.git
+versions:
+    from: v2.80
+    to: v2.92
+
+# Files to load structs from
+files:
+  - D:\Blender\sobotka\source\blender\makesdna\DNA_mesh_types.h
+  - D:\Blender\sobotka\source\blender\makesdna\DNA_meshdata_types.h
+  #- D:\Blender\sobotka\source\blender\makesdna\DNA_customdata_types.h
+  - D:\Blender\sobotka\source\blender\makesdna\DNA_listBase.h
+  - D:\Blender\sobotka\source\blender\makesdna\DNA_gpencil_types.h
+
+# Structs to clone and per-struct settings
+structs:
+  ID: null
+
+  # DNA_mesh_types.h
+  Mesh: null
+
+  # DNA_meshdata_types.h
+  MLoop: null
+  MLoopUV:
+    # Fields to unpack. Each unpacked entry will be suffixed with `_N`
+    # where N is the index number for the unpacked entry.
+    unpack:
+      - uv
+    # Should this type be IInteropConvertible (and to what)
+    # Also declare source code to be generated for comparison/conversion
+    interop:
+      type: InteropVector2
+      convert: |
+        return new InteropVector2(uv_0, uv_1);
+      compare: |
+        return uv_0 == obj.x && uv_1 == obj.y;
+  MLoopTri:
+    unpack:
+      - tri
+  MVert:
+    unpack:
+      - co
+      - no
+  # DNA_customdata_types.h
+  CustomData: null
+
+  # DNA_gpencil_types.h
+  bGPDframe: null
+  bGPDstroke: null
+  bGPDspoint:
+    unpack:
+      - uv_fill
+      - vert_color
+
+  # DNA_listBase.h
+  ListBase: null
+
+---
+
+versions: # DNAFactory
+  - version: 9.20 # DNAVersion
+    structs:
+      Mesh: # DNAStruct
+        sizeOf: 15
+        fields:
+          mvert:
+            offset: 100
+            sizeOf: 8
+            ctype: MVert*
+          ldata:
+            offset: 123
+            sizeOf: 180
+            ctype: CustomData
+      MVert:
+        sizeOf: 100
+        fields:
+          co:
+            offset: 0
+            sizeOf: 32
+            ctype: float[3]
+          no:
+            offset: 32
+            sizeOf: 12
+            ctype: short[3]
+  - version: 9.80
+    structs:
+      - name: Mesh
+        sizeOf: 15
+        fields:
+          - name: mvert
+            offset: 100
+            sizeOf: 8
+            ctype: MVert*
+         # and so on.
+         # It'd make more sense to go full on
+         # AstCpp and add isPointer, isArray,
+         # elementCount, etc data so we can
+         # manipulate however.
+         # isStruct BASICALLY typed as:
+         # struct, primitive, pointer, array
+         # Can then just condense the whole thing
+         # down to one data type.
+         # Can have defaults and write as optionals.
+         # So yea, same representation everywhere.
