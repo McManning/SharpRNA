@@ -31,15 +31,18 @@ namespace SharpRNA
                 }
             }
 
-            // TODO: Support enums somehow
-            // foreach (var cppEnum in compilation.Enums)
-            //    Console.WriteLine(cppEnum);
-
             var dna = new DNA
             {
                 Version = dnaVersion,
                 Entities = new Dictionary<string, Entity>()
             };
+
+            // TODO: Support enums somehow - e.g. CustomDataType that can change between DNA versions
+            // https://github.com/sobotka/blender/blob/master/source/blender/makesdna/DNA_customdata_types.h#L90
+            foreach (var cenum in compilation.Enums)
+            {
+                //Console.WriteLine(cenum);
+            }
 
             // Print all structs with all fields
             foreach(var cstruct in compilation.Classes)
@@ -123,6 +126,12 @@ namespace SharpRNA
                 var type = cfield.Type;
                 var field = new Entity();
 
+                // Unwrap a typedef and use the underlying type instead
+                if (type is CppTypedef typedef)
+                {
+                    type = typedef.ElementType;
+                }
+
                 if (type is CppPointerType pointer)
                 {
                     field.Type = EntityType.Pointer;
@@ -169,6 +178,13 @@ namespace SharpRNA
                     {
                         AddEntity(dna, cls, true);
                     }
+                }
+                else
+                {
+                    throw new Exception(
+                        $"Cannot parse field [{cstruct.Name}.{cfield.Name}] " +
+                        $"- Type [{type}] is not supported"
+                    );
                 }
 
                 entity.Fields[cfield.Name] = field;

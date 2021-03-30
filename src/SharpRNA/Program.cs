@@ -111,10 +111,9 @@ namespace SharpRNA
                     false,
                     "Show verbose output."
                 ),
-                new Argument("Output"),
             };
 
-            // root.Description = "TODO";
+            root.Description = "Build DNA YAML from C headers";
 
             root.Handler = CommandHandler.Create((Args args) =>
             {
