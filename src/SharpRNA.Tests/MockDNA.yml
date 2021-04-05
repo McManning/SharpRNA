@@ -1,0 +1,202 @@
+﻿---
+Version: 1.0.0
+Entities:
+  Block32:
+    Type: Struct
+    CType: Block32
+    Size: 32
+    Fields:
+      data:
+        Type: Array
+        CType: char
+        Offset: 0
+        Size: 1
+        Count: 32
+  ID:
+    Type: Struct
+    CType: ID
+    Size: 98
+    Fields:
+      name:
+        Type: Array
+        CType: char
+        Offset: 0
+        Size: 1
+        Count: 66
+      padding:
+        Type: Struct
+        CType: Block32
+        Offset: 66
+        Size: 32
+  CustomData:
+    Type: Struct
+    CType: CustomData
+    Size: 44
+    Fields:
+      Type:
+        Type: Primitive
+        CType: int
+        Offset: 0
+        Size: 4
+      data:
+        Type: Pointer
+        CType: void
+        Offset: 4
+        Size: 8
+      padding:
+        Type: Struct
+        CType: Block32
+        Offset: 12
+        Size: 32
+  MVert:
+    Type: Struct
+    CType: MVert
+    Size: 22
+    Fields:
+      co:
+        Type: Array
+        CType: float
+        Offset: 0
+        Size: 12
+        Count: 3
+      no:
+        Type: Array
+        CType: short
+        Offset: 12
+        Size: 6
+        Count: 3
+      flag:
+        Type: Primitive
+        CType: int
+        Offset: 18
+        Size: 4
+  Mesh:
+    Type: Struct
+    CType: Mesh
+    Size: 270
+    Fields:
+      id:
+        Type: Struct
+        CType: ID
+        Offset: 0
+        Size: 98
+      mverts:
+        Type: Pointer
+        CType: MVert
+        Offset: 98
+        Size: 8
+      totverts:
+        Type: Primitive
+        CType: int
+        Offset: 106
+        Size: 4
+      flag1:
+        Type: Primitive
+        CType: int
+        Offset: 110
+        Size: 4
+      padding1:
+        Type: Struct
+        CType: Block32
+        Offset: 114
+        Size: 32
+      flag2:
+        Type: Primitive
+        CType: int
+        Offset: 146
+        Size: 4
+      rdata:
+        Type: Struct
+        CType: CustomData
+        Offset: 150
+        Size: 44
+      ldata:
+        Type: Struct
+        CType: CustomData
+        Offset: 194
+        Size: 44
+      padding2:
+        Type: Struct
+        CType: Block32
+        Offset: 238
+        Size: 32
+      flag3:
+        Type: Primitive
+        CType: int
+        Offset: 270
+        Size: 4
+  TestPrimitives:
+    Type: Struct
+    CType: TestPrimitives
+    Size: 24
+    Fields:
+      floatVal:
+        Type: Primitive
+        CType: float
+        Offset: 0
+        Size: 4
+      intVal:
+        Type: Primitive
+        CType: int
+        Offset: 4
+        Size: 4
+      byteVal1:
+        Type: Primitive
+        CType: char
+        Offset: 8
+        Size: 1
+      byteVal2:
+        Type: Primitive
+        CType: char
+        Offset: 9
+        Size: 1
+      padding1:
+        Type: Struct
+        CType: Block32
+        Offset: 10
+        Size: 32
+      shortVal:
+        Type: Primitive
+        CType: short
+        Offset: 42
+        Size: 2
+      x:
+        Type: Primitive
+        CType: float
+        Offset: 44
+        Size: 4
+      y:
+        Type: Primitive
+        CType: float
+        Offset: 48
+        Size: 4
+      z:
+        Type: Primitive
+        CType: float
+        Offset: 52
+        Size: 4
+  TestNestedPrimitives:
+    Type: Struct
+    CType: TestNestedPrimitives
+    Size: 36
+    Fields:
+      x:
+        Type: Primitive
+        CType: float
+        Offset: 0
+        Size: 4
+      y:
+        Type: Primitive
+        CType: float
+        Offset: 4
+        Size: 4
+      z:
+        Type: Primitive
+        CType: float
+        Offset: 8
+        Size: 4
+      primitives:
+        Type: Struct
+        CType: TestPrimitives
+        Offset: 12
+        Size: 24

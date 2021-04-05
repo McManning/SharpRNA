@@ -1,9 +1,35 @@
 ﻿using System;
 using System.IO;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.ObjectFactories;
 
 namespace SharpRNA
 {
+    class EntityFactory : IObjectFactory
+    {
+        private readonly DefaultObjectFactory fallback = new DefaultObjectFactory();
+        private DNA dna;
+
+        public object Create(Type type)
+        {
+            if (type == typeof(DNA))
+            {
+                dna = new DNA();
+                return dna;
+            }
+
+            if (type == typeof(Entity))
+            {
+                return new Entity
+                {
+                    DNA = dna
+                };
+            }
+
+            return fallback.Create(type);
+        }
+    }
+
     class Serializer
     {
         /// <summary>
@@ -13,10 +39,25 @@ namespace SharpRNA
         {
             var deserializer = new DeserializerBuilder()
                 //.WithNamingConvention(LowerCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
+                // .IgnoreUnmatchedProperties()
+                .WithObjectFactory(new EntityFactory())
                 .Build();
 
+            // That's a problem.
+
             var dna = deserializer.Deserialize<DNA>(reader);
+
+            // Make sure entities and version information has loaded
+            if (string.IsNullOrEmpty(dna.Version))
+            {
+                throw new Exception("Could not find DNA version information from YAML");
+            }
+
+            if (dna.Entities == null || dna.Entities.Count < 1)
+            {
+                throw new Exception("Could not find any DNA entities from YAML");
+            }
+
             return dna;
         }
 
@@ -27,7 +68,7 @@ namespace SharpRNA
         {
             var deserializer = new DeserializerBuilder()
                 //.WithNamingConvention(LowerCaseNamingConvention.Instance)
-                .IgnoreUnmatchedProperties()
+                //.IgnoreUnmatchedProperties()
                 .Build();
 
             var versions = deserializer.Deserialize<DNAVersions>(reader);

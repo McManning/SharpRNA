@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SharpRNA;
+using SharpRNA.Tests.Properties;
 
 #pragma warning disable CS0649
 
@@ -16,14 +18,21 @@ namespace SharpRNATests
         public ShortVector3 normal;
     }
 
-    [DNA("Mesh")]
-    struct Mesh
+    [DNA("CustomData")]
+    struct CD_LData
     {
-        [DNA("mvert", SizeField = "totverts")]
-        public NativeArray<Vertex> vertices;
+        // TODO: This *should* be supported, as we don't necessarily
+        // know the size within CustomData. We know the size from Mesh
+        // and we can do a floats.Reinterpret<float>(size); to work with it.
+        [DNA("data")]
+        public NativeArray<float> floats;
+    }
 
-        [DNA("totverts")]
-        public int totverts;
+    [DNA("Mesh")]
+    struct Mesh_Ldata
+    {
+        [DNA("ldata")]
+        public CD_LData ldata;
     }
 
     [DNA("Mesh")]
@@ -56,16 +65,20 @@ namespace SharpRNATests
     [TestClass]
     public class NativeArrayTests
     {
+        private RNA rna;
+
         [ClassCleanup]
         public static void ClassCleanup()
         {
             Mocks.Dispose();
         }
 
-        [ClassInitialize]
-        public static void ClassInitialize(TestContext context)
+        [TestInitialize]
+        public void TestInitialize()
         {
-            DNAVersion.LoadEntitiesFromYAML(Mocks.YAML_PATH);
+            using var stream = new MemoryStream(Resources.MockDNA);
+            using var reader = new StreamReader(stream);
+            rna = RNA.FromDNA(reader);
         }
 
         [TestMethod]
@@ -73,7 +86,7 @@ namespace SharpRNATests
         {
             var ptr = Mocks.GetNativeMeshPtr();
 
-            var result = DNAVersion.FromDNA<Mesh_WithID>(ptr);
+            var result = rna.Transcribe<Mesh_WithID>(ptr);
 
             Assert.AreEqual(66, result.id.name.Count);
 
@@ -84,11 +97,49 @@ namespace SharpRNATests
         }
 
         [TestMethod]
+        public void CustomData_NativeArray_UnknownSize()
+        {
+            // Ensure that NativeArrayConverter.EmitPointerAsNativeArrayIL
+            // can handle array element types that are not DNA entities
+
+            var ptr = Mocks.GetNativeMeshPtr();
+
+            var result = rna.Transcribe<Mesh_Ldata>(ptr);
+
+            // ldata.floats is an array without a defined size.
+            // Any access without reinterpreting will result in an exception
+            Assert.ThrowsException<IndexOutOfRangeException>(() =>
+            {
+                var x = result.ldata.floats[0];
+            });
+        }
+
+        [TestMethod]
+        public void CustomData_NativeArray_Reinterpret()
+        {
+            var ptr = Mocks.GetNativeMeshPtr();
+
+            var result = rna.Transcribe<Mesh_Ldata>(ptr);
+
+            var floats = result.ldata.floats.Reinterpret<float>(3);
+
+            Assert.AreEqual(3, floats.Count);
+            Assert.AreEqual(0, floats[0]);
+            Assert.AreEqual(1, floats[1]);
+            Assert.AreEqual(2, floats[2]);
+
+            Assert.ThrowsException<IndexOutOfRangeException>(() =>
+            {
+                var x = floats[3];
+            });
+        }
+
+        [TestMethod]
         public void Mesh_NativeArray_DynamicSize()
         {
             var ptr = Mocks.GetNativeMeshPtr();
 
-            var result = DNAVersion.FromDNA<Mesh_NativeArrayVertices>(ptr);
+            var result = rna.Transcribe<Mesh_NativeArrayVertices>(ptr);
 
             Assert.AreEqual(5, result.vertices.Count);
 

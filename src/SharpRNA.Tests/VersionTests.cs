@@ -1,37 +1,30 @@
 ﻿using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SharpRNA;
+using SharpRNA.Tests.Properties;
 
 namespace SharpRNATests
 {
     [TestClass]
     public class VersionTests
     {
+        private RNA rna;
+
         [ClassCleanup]
         public static void ClassCleanup()
         {
             Mocks.Dispose();
         }
 
-        [ClassInitialize]
-        public static void ClassInitialize(TestContext context)
+        [TestInitialize]
+        public void TestInitialize()
         {
-            DNAVersion.LoadEntitiesFromYAML(Mocks.YAML_PATH);
+            using var stream = new MemoryStream(Resources.MockDNA);
+            using var reader = new StreamReader(stream);
+            rna = RNA.FromDNA(reader);
         }
 
-        [TestMethod]
-        public void LoadEntitiesFromYAML()
-        {
-            var mesh = DNAVersion.FindEntityByName("Mesh");
-
-            foreach (var field in mesh.Fields.Keys)
-            {
-                Console.WriteLine($"{field} = {mesh.Fields[field]}");
-            }
-
-            Assert.AreEqual(0, mesh.Fields["id"].Offset);
-            Assert.AreEqual(270, mesh.Size);
-            Assert.AreEqual("Mesh", mesh.CType);
-        }
+        // TODO: Tests!
     }
 }

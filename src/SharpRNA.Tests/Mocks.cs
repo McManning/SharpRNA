@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using SharpRNA;
-using Version = SharpRNA.DNAVersion;
 
 namespace SharpRNATests
 {
     public static class Mocks
     {
-        public const string YAML_PATH = "D:\\Blender\\DNAQuery\\DNAQueryTests\\mocks.yml";
-
         /// <summary>
         /// 32 byte block for arbitrary data
         /// </summary>
@@ -139,7 +136,7 @@ namespace SharpRNATests
             primitivesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<TestPrimitives>());
             Marshal.StructureToPtr(test, primitivesPtr, false);
 
-            Console.WriteLine("TestPrimitives size: " + Marshal.SizeOf<TestPrimitives>());
+            Console.WriteLine("[Mocks] TestPrimitives size: " + Marshal.SizeOf<TestPrimitives>());
             return primitivesPtr;
         }
 
@@ -171,7 +168,7 @@ namespace SharpRNATests
             nestedPrimitivesPtr = Marshal.AllocHGlobal(Marshal.SizeOf<TestNestedPrimitives>());
             Marshal.StructureToPtr(test, nestedPrimitivesPtr, false);
 
-            Console.WriteLine("TestNestedPrimitives size: " + Marshal.SizeOf<TestNestedPrimitives>());
+            Console.WriteLine("[Mocks] TestNestedPrimitives size: " + Marshal.SizeOf<TestNestedPrimitives>());
             return nestedPrimitivesPtr;
         }
 
@@ -209,7 +206,17 @@ namespace SharpRNATests
 
             // Just allocate some float3's for ldata.
             ldataDataPtr = Marshal.AllocHGlobal(3 * Marshal.SizeOf<float>() * mverts.Length);
-            // TODO: Write random numbers (just incremental or something)
+
+            // Dump incrementing values into the array for test data
+            unsafe
+            {
+                var floatSize = Marshal.SizeOf<float>();
+                for (int i = 0; i < mverts.Length; i++)
+                {
+                    var ptr = (float*)(ldataDataPtr + floatSize * i);
+                    *ptr = i;
+                }
+            }
 
             var ldata = new CustomData
             {
@@ -232,19 +239,18 @@ namespace SharpRNATests
             meshPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Mesh>());
             Marshal.StructureToPtr(mesh, meshPtr, true);
 
-            Console.WriteLine("Mesh size: " + Marshal.SizeOf<Mesh>());
-            Console.WriteLine("Ptr size : " + Marshal.SizeOf<IntPtr>());
-            Console.WriteLine("CustomData size : " + Marshal.SizeOf<CustomData>());
-            Console.WriteLine("Totverts offset: " + Marshal.OffsetOf(typeof(Mesh), "totverts"));
+            Console.WriteLine("[Mocks] Mesh size: " + Marshal.SizeOf<Mesh>());
+            Console.WriteLine("[Mocks] Ptr size : " + Marshal.SizeOf<IntPtr>());
+            Console.WriteLine("[Mocks] CustomData size : " + Marshal.SizeOf<CustomData>());
+            Console.WriteLine("[Mocks] Totverts offset: " + Marshal.OffsetOf(typeof(Mesh), "totverts"));
 
-            Console.WriteLine("MVERTS PTR LONG: " + mvertsPtr);
+            Console.WriteLine("[Mocks] MVERTS PTR LONG: " + mvertsPtr);
 
             unsafe
             {
                 var ptr = IntPtr.Add(meshPtr, 0);
                 var value = *(byte*)ptr;
-                Console.WriteLine("VALUE IS: " + value + " at " + ptr); // correct.
-
+                Console.WriteLine("[Mocks] VALUE IS: " + value + " at " + ptr); // correct.
             }
 
             return meshPtr;

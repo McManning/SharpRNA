@@ -1,67 +1,121 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
 
 namespace SharpRNA
 {
-    public class GeneratorState
+    public class RNAGeneratorException : Exception
     {
-        /// <summary>
-        /// The C# struct that we're generating a conversion to
-        /// </summary>
-        public Type Type { get; set; }
-
-        /// <summary>
-        /// The DNA entity we're generating a conversion from
-        /// </summary>
-        public Entity Entity { get; set; }
-
-        /// <summary>
-        /// The current IL generator to add opcodes into
-        /// </summary>
-        public ILGenerator Generator { get; set; }
-
-        /// <summary>
-        /// The local variable instance of our output C# type to write into
-        /// </summary>
-        public LocalBuilder Local { get; set; }
-
-        /// <summary>
-        /// Blender DNA field we are currently writing conversion opcodes for
-        /// </summary>
-        public Entity Field { get; set; }
-
-        /// <summary>
-        /// The target field of <see cref="Local"/> that we're writing into
-        /// </summary>
-        public FieldInfo FieldInfo { get; set; }
-
-        /// <summary>
-        /// <see cref="DNAAttribute"/> attached to the target <see cref="FieldInfo"/>.
-        /// </summary>
-        public DNAAttribute DNA { get; set; }
+        public RNAGeneratorException(string message) : base(message)
+        {
+        }
     }
 
-    public static class DNAToStructure<T>
+    /// <summary>
+    /// Primary API for converting native structures in memory described by DNA to C# types
+    /// </summary>
+    public class RNA
     {
-        public delegate T Delegate(IntPtr ptr);
+        // Attached to a specific DNA version
 
-        private static Delegate copyConverter;
+        public DNA DNA { get; private set; }
+
+        private readonly static Dictionary<Type, Entity> typeCache = new Dictionary<Type, Entity>();
+
+        public static RNA FromDNA(TextReader reader, string version = null)
+        {
+            DNA dna;
+
+            if (!string.IsNullOrEmpty(version))
+            {
+                var versions = Serializer.FromVersionedYAML(reader);
+                dna = versions.Find(version);
+                if (dna == null)
+                {
+                    // TODO: Better error message that includes the ranges checked
+                    // (similar to version errors for npm / composer)
+                    throw new ArgumentException(
+                        $"Cannot resolve DNA version [{version}]"
+                    );
+                }
+            }
+            else
+            {
+                dna = Serializer.FromYAML(reader);
+            }
+
+            return new RNA()
+            {
+                DNA = dna,
+            };
+        }
+
+        /// <summary>
+        /// Convert a native DNA type in memory to a managed C# type <typeparamref name="T"/>
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="ptr"></param>
+        /// <returns></returns>
+        public T Transcribe<T>(IntPtr ptr)
+        {
+            var entity = FindEntityForType(typeof(T));
+            if (entity == null)
+            {
+                throw new Exception($"Missing [DNA] attribute for type {typeof(T)}");
+            }
+
+            // Run custom IL to generate T and return it.
+            return RNA<T>.Transcribe(this, entity, ptr);
+        }
+
+        public Entity FindEntityForCType(string ctype)
+        {
+            return DNA.Entities.GetValueOrDefault(ctype);
+        }
+
+        public Entity FindEntityForType(Type type)
+        {
+            if (!typeCache.ContainsKey(type))
+            {
+                // Evaluate the type mapping for T and cache
+                var attr = type.GetCustomAttributes(typeof(DNAAttribute), false) as DNAAttribute[];
+                if (attr.Length < 1)
+                {
+                    return null; // Not a mapped type
+                }
+
+                typeCache[type] = FindEntityForCType(attr[0].Name);
+            }
+
+            return typeCache[type];
+        }
+    }
+
+    /// <summary>
+    /// RNA converter(s) to a specific managed type from entity definitions
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public static class RNA<T>
+    {
+        public delegate T Delegate(IntPtr ptr, RNA rna);
+
+        private static Delegate copyDelegate;
 
         private static readonly Dictionary<Entity, Delegate> cache
             = new Dictionary<Entity, Delegate>();
 
         #region Public API
 
-        public static T Convert(Entity entity, IntPtr ptr)
+        public static T Transcribe(RNA rna, Entity entity, IntPtr ptr)
         {
-            var converter = GetConverter(entity);
-            return converter(ptr);
+            var converter = GetDelegate(rna, entity);
+            return converter(ptr, rna);
         }
 
-        public static Delegate GetConverter(Entity entity)
+        public static Delegate GetDelegate(RNA rna, Entity entity)
         {
             if (cache.TryGetValue(entity, out Delegate converter))
             {
@@ -69,19 +123,19 @@ namespace SharpRNA
             }
 
             // Create IL for Entity -> T, store in cache and return
-            converter = CreateConverter(entity);
+            converter = CreateDelegate(rna, entity);
             cache[entity] = converter;
             return converter;
         }
 
-        public static Delegate GetCopyConverter()
+        public static Delegate GetCopyDelegate()
         {
-            if (copyConverter == null)
+            if (copyDelegate == null)
             {
-                copyConverter = CreateCopyConverter();
+                copyDelegate = CreateCopyDelegate();
             }
 
-            return copyConverter;
+            return copyDelegate;
         }
 
         #endregion
@@ -93,14 +147,14 @@ namespace SharpRNA
         /// instead of trying to convert from a DNA type.
         /// </summary>
         /// <returns></returns>
-        static Delegate CreateCopyConverter()
+        static Delegate CreateCopyDelegate()
         {
             var type = typeof(T);
 
             var method = new DynamicMethod(
                 "DNAToStructureCopy<" + type.FullName + ">",
                 type,
-                new Type[] { typeof(IntPtr) },
+                new Type[] { typeof(IntPtr), typeof(RNA) }, // RNA unused but needs to match the signature.
                 typeof(Delegate).Module
             );
 
@@ -124,37 +178,38 @@ namespace SharpRNA
             return (Delegate)method.CreateDelegate(typeof(Delegate));
         }
 
-        static Delegate CreateConverter(Entity entity)
+        static Delegate CreateDelegate(RNA rna, Entity entity)
         {
             var type = typeof(T);
 
             var method = new DynamicMethod(
                 "DNAToStructureDyn<" + type.FullName + ">",
                 type,
-                new Type[] { typeof(IntPtr) },
+                new Type[] { typeof(IntPtr), typeof(RNA) },
                 typeof(Entity).Module
             );
 
             var il = method.GetILGenerator();
             var localStruct = il.DeclareLocal(type);
 
-            var state = new GeneratorState
+            var state = new ILState
             {
                 Type = type,
                 Entity = entity,
                 Generator = il,
                 Local = localStruct,
+                RNA = rna,
             };
 
             // Generate IL for all fields that have a [DNA] attribute
-            // that map that field to one or more Blender DNA fields.
+            // that map that field to one or more DNA entities.
             foreach (var field in type.GetFields())
             {
                 var dna = field.GetCustomAttribute<DNAAttribute>();
                 if (dna != null)
                 {
                     state.Field = entity.Fields[dna.Name];
-                    state.DNA = dna;
+                    state.DNAInfo = dna;
                     state.FieldInfo = field;
                     EmitCopyFieldIL(state);
                 }
@@ -167,7 +222,7 @@ namespace SharpRNA
             return (Delegate)method.CreateDelegate(typeof(Delegate));
         }
 
-        private static void EmitCopyFieldIL(GeneratorState state)
+        private static void EmitCopyFieldIL(ILState state)
         {
             var field = state.FieldInfo;
             var type = field.FieldType;
@@ -212,13 +267,13 @@ namespace SharpRNA
             }
             else
             {
-                throw new Exception(
-                    $"DNA attribute on unsupported field [{field.Name}] with type [{field.FieldType}]"
+                throw new RNAGeneratorException(
+                    $"DNA attribute on field [{field.Name}] has unsupported type [{field.FieldType}]"
                 );
             }
         }
 
-        private static void EmitCopyPrimitiveFieldIL(GeneratorState state)
+        private static void EmitCopyPrimitiveFieldIL(ILState state)
         {
             // Mapping of C# primitive types to load indirect opcodes.
             var ldind = new Dictionary<Type, OpCode>()
@@ -243,7 +298,7 @@ namespace SharpRNA
             var field = state.FieldInfo;
 
             // TODO: CType missing (because it's at the root of version lookup)
-            Console.WriteLine($"Emit {state.Entity.CType}.{state.DNA.Name}@{state.Field.Offset} -> {field.Name} [{ldind[field.FieldType]}]:");
+            Console.WriteLine($"Emit {state.Entity.CType}.{state.DNAInfo.Name}@{state.Field.Offset} -> {field.Name} [{ldind[field.FieldType]}]:");
 
             // local.x = *(float*)(ptr + offset);
             il.Emit(OpCodes.Ldloca_S, state.Local); // Load address of local variable
@@ -251,7 +306,7 @@ namespace SharpRNA
             il.Emit(OpCodes.Ldc_I4, state.Field.Offset); // Push read field offset onto stack
             il.Emit(OpCodes.Add); // Add offset to pointer
 
-            il.EmitWriteLine($"Copy {state.Entity.CType}.{state.DNA.Name}@{state.Field.Offset} -> {field.Name} [{ldind[field.FieldType]}]:");
+            il.EmitWriteLine($"Copy {state.Entity.CType}.{state.DNAInfo.Name}@{state.Field.Offset} -> {field.Name} [{ldind[field.FieldType]}]:");
 
             //il.Emit(OpCodes.Ldc_I4, state.Field.Offset);
             //il.Emit(OpCodes.Call, typeof(Wtf).GetMethod("Dump"));
@@ -260,7 +315,7 @@ namespace SharpRNA
             il.Emit(OpCodes.Stfld, field); // Store onto field
         }
 
-        private static void EmitCopyStructIL(GeneratorState state)
+        private static void EmitCopyStructIL(ILState state)
         {
             var il = state.Generator;
             var field = state.FieldInfo;
@@ -278,7 +333,7 @@ namespace SharpRNA
             il.Emit(OpCodes.Cpblk); // Block copy from source pointer -> struct field
         }
 
-        private static void EmitCopyDNAStructIL(GeneratorState state, FieldInfo field)
+        private static void EmitCopyDNAStructIL(ILState state, FieldInfo field)
         {
             var il = state.Generator;
 
@@ -303,21 +358,19 @@ namespace SharpRNA
 
             il.Emit(OpCodes.Ldloca_S, state.Local);
 
+            il.Emit(OpCodes.Ldarg_1); // Load RNA instance onto stack
+
             il.Emit(OpCodes.Ldarg_0); // Load source pointer onto stack
             il.Emit(OpCodes.Ldc_I4, state.Field.Offset); // Push read field offset onto stack
             il.Emit(OpCodes.Add); // Add offset to pointer
 
-            // Delegate to DNAVersion.FromDNA<T>(ptr) to resolve and return the type.
-            // This isn't as optimal as just generating the delegate right in this
-            // opcode emitter and passing it down - but it ends up out of scope
-            // once we actually run the opcodes.
-            il.Emit(OpCodes.Call, typeof(DNAVersion).GetMethod("FromDNA").MakeGenericMethod(field.FieldType));
+            // This could be faster... a lot of work in RNA.Transcribe<T> prior to doing the il.
+            il.Emit(OpCodes.Call, typeof(RNA).GetMethod("Transcribe").MakeGenericMethod(field.FieldType));
+
             // il.Emit(OpCodes.Stloc, fieldTypeLocal);
 
             // skip local variable - store directly from the call.
             il.Emit(OpCodes.Stfld, field);
-
-            // TODO: Can I write directly to Call -> store?
 
             // &local.x = localOfXType
             //il.Emit(OpCodes.Ldloca_S, state.Local); // Push reference to local field onto the stack

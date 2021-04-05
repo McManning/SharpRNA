@@ -9,10 +9,18 @@ namespace SharpRNA
 {
     public class NativeArray<T> where T : struct
     {
-        public Entity Entity { get; private set; }
-
         public IntPtr Ptr { get; private set; }
 
+        /// <summary>
+        /// Number of elements in the array.
+        ///
+        /// <para>
+        ///     This value <b>may be zero</b> if this array was converted
+        ///     from a native pointer without a reference size field.
+        ///     To access data within this array, call <see cref="Reinterpret{I}(int)"/>
+        ///     with a new count.
+        /// </para>
+        /// </summary>
         public int Count { get; private set; }
 
         public int ElementSize { get; private set; }
@@ -20,46 +28,31 @@ namespace SharpRNA
         public bool IsNull => Ptr == IntPtr.Zero;
 
         /// <summary>
-        /// Translation delegate from a DNA type to a C# representation.
+        /// RNA instance used for conversion
         /// </summary>
-        private readonly DNAToStructure<T>.Delegate converter;
+        private readonly RNA rna;
 
         /// <summary>
-        ///
+        /// Transcribe delegate from a DNA type to a C# representation.
         /// </summary>
-        /// <param name="ptr"></param>
-        /// <param name="entity"></param>
-        /// <param name="count">
-        ///     Number of <see cref="Entity"/> represented by this array.
-        /// </param>
-        public NativeArray(IntPtr ptr, Entity entity, int count)
+        private readonly RNA<T>.Delegate rnaDelegate;
+
+        public NativeArray(RNA rna, Entity entity, IntPtr ptr, int count)
         {
+            this.rna = rna;
             Ptr = ptr;
-            Entity = entity;
             Count = count;
 
-            if (entity == null)
+            if (entity != null)
             {
-                throw new ArgumentNullException($"Expected Entity");
+                rnaDelegate = RNA<T>.GetDelegate(rna, entity);
+                ElementSize = entity.Size;
             }
-
-            converter = DNAToStructure<T>.GetConverter(entity);
-            ElementSize = entity.Size;
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="ptr"></param>
-        /// <param name="count">Number of <typeparamref name="T"/> represented by this array</param>
-        public NativeArray(IntPtr ptr, int count)
-        {
-            Ptr = ptr;
-            Count = count;
-
-            // Use direct memcpy as the converter since there's no DNA conversion
-            converter = DNAToStructure<T>.GetCopyConverter();
-            ElementSize = Marshal.SizeOf<T>();
+            else
+            {
+                rnaDelegate = RNA<T>.GetCopyDelegate();
+                ElementSize = Marshal.SizeOf<T>();
+            }
         }
 
         public T this[int index] {
@@ -71,7 +64,7 @@ namespace SharpRNA
 
                 // We jump based on the underlying DNA type size - not T's size.
                 // That way conversions are aligned to the underlying size.
-                return converter(IntPtr.Add(Ptr, ElementSize * index));
+                return rnaDelegate(IntPtr.Add(Ptr, ElementSize * index), rna);
             }
         }
 
@@ -95,8 +88,8 @@ namespace SharpRNA
         /// <returns></returns>
         public NativeArray<I> Reinterpret<I>(int count) where I : struct
         {
-            var entity = DNAVersion.FindEntityForType<I>();
-            return new NativeArray<I>(Ptr, entity, count);
+            var entity = rna.FindEntityForType(typeof(I));
+            return new NativeArray<I>(rna, entity, Ptr, count);
         }
     }
 
@@ -110,7 +103,7 @@ namespace SharpRNA
             return to.IsGenericType && to.GetGenericTypeDefinition() == typeof(NativeArray<>);
         }
 
-        public void GenerateIL(GeneratorState state)
+        public void GenerateIL(ILState state)
         {
             if (state.Field.Type == EntityType.Array)
             {
@@ -128,7 +121,7 @@ namespace SharpRNA
             }
         }
 
-        private static void EmitFixedArrayAsNativeArrayIL(GeneratorState state)
+        private static void EmitFixedArrayAsNativeArrayIL(ILState state)
         {
             // char name[64] -> NativeArray<byte> name
             // float co[3] -> NativeArray<float> position
@@ -138,27 +131,33 @@ namespace SharpRNA
 
             // Extract type N from `NativeArray<N>`
             var type = field.FieldType.GetGenericArguments()[0];
-            var arrayEntity = DNAVersion.FindEntityForType(type);
+            var arrayEntity = state.RNA.FindEntityForType(type);
 
             var constantArraySize = state.Field.Count;
 
-            // local.x = Factory.CreateNativeArray<N>(ptr + offset, constantArraySize, entityId);
+            // local.x = Factory.CreateNativeArray<N>(rna, ctype, count, ptr + offset);
             il.Emit(OpCodes.Ldloca_S, state.Local);
 
+            // RNA responsible for conversion
+            il.Emit(OpCodes.Ldarg_1);
+
+            // The entity type to convert
+            il.Emit(OpCodes.Ldstr, arrayEntity?.CType ?? "");
+
+            // Number of elements in the array
+            il.Emit(OpCodes.Ldc_I4, constantArraySize);
+
+            // Pointer stored at offset to convert
             il.Emit(OpCodes.Ldarg_0); // Load source pointer onto stack
             il.Emit(OpCodes.Ldc_I4, state.Field.Offset); // Push read field offset onto stack
             il.Emit(OpCodes.Add); // Add offset to pointer
 
-            il.Emit(OpCodes.Ldc_I4, constantArraySize);
-            il.Emit(OpCodes.Ldc_I4, arrayEntity != null ? arrayEntity.ID : -1); // Push entity ID onto the stack
-
-            // TODO: Direct constructor call? Would it be quicker? (probably)
             il.Emit(OpCodes.Call, typeof(NativeArrayConverter).GetMethod("Create").MakeGenericMethod(type));
 
             il.Emit(OpCodes.Stfld, field); // Store retval in local field
         }
 
-        private static void EmitPointerAsNativeArrayIL(GeneratorState state)
+        private static void EmitPointerAsNativeArrayIL(ILState state)
         {
             // char* name -> NativeArray<byte> name
             // MVert* verts -> NativeArray<Vertex> vertices
@@ -168,64 +167,58 @@ namespace SharpRNA
 
             // Extract type N from `NativeArray<N>`
             var type = field.FieldType.GetGenericArguments()[0];
-            var arrayEntity = DNAVersion.FindEntityForType(type);
+            var arrayEntity = state.RNA.FindEntityForType(type);
 
-            if (state.DNA.SizeField.Length < 1)
-            {
-                throw new Exception(
-                    $"A [DNA(SizeField)] on [{field.Name}] is required to use NativeArray when the underlying type is a pointer"
-                );
-            }
-
-            var sizeField = state.Entity.Fields[state.DNA.SizeField];
-
-            // Sanity check - ensure it's int-like.
-            if (sizeField.CType != "int")
-            {
-                // TODO: Friendly errors
-                throw new Exception("Expected int SizeField");
-            }
-
-            // TODO: Might have uints? If so, we need a different opcode to load and local type.
-
-            // Add opcodes to extract the count from another field in the struct.
-
-            // arraySizeLocal = *(int*)(ptr + sizeFieldOffset)
             var arraySizeLocal = il.DeclareLocal(typeof(int));
-            il.Emit(OpCodes.Ldarg_0);
-            il.Emit(OpCodes.Ldc_I4, sizeField.Offset);
-            il.Emit(OpCodes.Add);
-            il.Emit(OpCodes.Ldind_I4);
-            il.Emit(OpCodes.Stloc, arraySizeLocal);
 
-            // local.x = Factory.CreateNativeArray<N>(ptr + offset, arraySizeLocal, entityId);
+            if (!string.IsNullOrEmpty(state.DNAInfo.SizeField))
+            {
+                var sizeField = state.Entity.Fields[state.DNAInfo.SizeField];
+                // Sanity check - ensure it's int-like.
+                if (sizeField.CType != "int")
+                {
+                    // TODO: Friendly errors
+                    // TODO: Might have uints? If so, we need a different opcode to load and local type.
+                    throw new Exception("Expected int SizeField");
+                }
+
+                // Add opcodes to extract the element count from another field in the struct.
+
+                // arraySizeLocal = *(int*)(ptr + sizeFieldOffset)
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ldc_I4, sizeField.Offset);
+                il.Emit(OpCodes.Add);
+                il.Emit(OpCodes.Ldind_I4);
+                il.Emit(OpCodes.Stloc, arraySizeLocal);
+            }
+
+            // local.x = Factory.CreateNativeArray<N>(rna, ctype, count, ptr + offset);
             il.Emit(OpCodes.Ldloca_S, state.Local);
 
+            // RNA responsible for conversion
+            il.Emit(OpCodes.Ldarg_1);
+
+            // The entity type to convert
+            il.Emit(OpCodes.Ldstr, arrayEntity?.CType ?? "");
+
+            // Number of elements in the array
+            il.Emit(OpCodes.Ldloc, arraySizeLocal);
+
+            // Pointer stored at offset to convert
             il.Emit(OpCodes.Ldarg_0); // Load source pointer onto stack
             il.Emit(OpCodes.Ldc_I4, state.Field.Offset); // Push read field offset onto stack
             il.Emit(OpCodes.Add); // Add offset to pointer
             il.Emit(OpCodes.Ldind_I8); // Replace value as a pointer to the start of the array and push back
-
-            il.Emit(OpCodes.Ldloc, arraySizeLocal);
-            il.Emit(OpCodes.Ldc_I4, arrayEntity != null ? arrayEntity.ID : -1); // Push entity ID onto the stack
 
             il.Emit(OpCodes.Call, typeof(NativeArrayConverter).GetMethod("Create").MakeGenericMethod(type));
 
             il.Emit(OpCodes.Stfld, field); // Store retval in local field
         }
 
-        public static NativeArray<N> Create<N>(IntPtr ptr, int count, int entityId) where N : struct
+        public static NativeArray<N> Create<N>(RNA rna, string ctype, int count, IntPtr ptr) where N : struct
         {
-            Console.WriteLine($"Create NativeArray<{typeof(N)}>, ptr={ptr}, count={count}, entityId={entityId}");
-
-            // If an ID is supplied, do a lookup and attach to the array.
-            if (entityId >= 0)
-            {
-                var entity = DNAVersion.FindEntityByID(entityId);
-                return new NativeArray<N>(ptr, entity, count);
-            }
-
-            return new NativeArray<N>(ptr, count);
+            var entity = rna.FindEntityForCType(ctype);
+            return new NativeArray<N>(rna, entity, ptr, count);
         }
     }
 }

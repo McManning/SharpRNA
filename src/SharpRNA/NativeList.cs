@@ -10,15 +10,25 @@ namespace SharpRNA
     public class NativeListEnumerator<T> : IEnumerator<T> where T : struct
     {
         private IntPtr current;
-        private readonly DNAToStructure<T>.Delegate converter;
 
-        public NativeListEnumerator(IntPtr current, DNAToStructure<T>.Delegate converter)
+        /// <summary>
+        /// RNA instance used for conversion
+        /// </summary>
+        private readonly RNA rna;
+
+        /// <summary>
+        /// Transcribe delegate from a DNA type to a C# representation.
+        /// </summary>
+        private readonly RNA<T>.Delegate rnaDelegate;
+
+        public NativeListEnumerator(RNA rna, IntPtr current, RNA<T>.Delegate rnaDelegate)
         {
+            this.rna = rna;
             this.current = current;
-            this.converter = converter;
+            this.rnaDelegate = rnaDelegate;
         }
 
-        public T Current => converter(current);
+        public T Current => rnaDelegate(current, rna);
 
         object IEnumerator.Current => Current;
 
@@ -51,24 +61,24 @@ namespace SharpRNA
     /// <typeparam name="T">A type that can be cast to from Blender DNA</typeparam>
     public class NativeList<T> : IEnumerable<T> where T : struct
     {
-        readonly Entity entity;
-
         readonly IntPtr first;
         readonly IntPtr last;
 
-        readonly DNAToStructure<T>.Delegate converter;
+        readonly RNA rna;
+        readonly RNA<T>.Delegate rnaDelegate;
 
-        public NativeList(IntPtr first, Entity entity)
+        public NativeList(RNA rna, IntPtr first, Entity entity)
         {
+            this.rna = rna;
             this.first = first;
-            this.entity = entity;
-            converter = DNAToStructure<T>.GetConverter(entity);
+
+            rnaDelegate = RNA<T>.GetDelegate(rna, entity);
         }
 
         public IEnumerator<T> GetEnumerator()
         {
             // generate a converter for version, pass down.
-            return new NativeListEnumerator<T>(first, converter);
+            return new NativeListEnumerator<T>(rna, first, rnaDelegate);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -94,7 +104,7 @@ namespace SharpRNA
             return to.IsGenericType && to.GetGenericTypeDefinition() == typeof(NativeList<>);
         }
 
-        public void GenerateIL(GeneratorState state)
+        public void GenerateIL(ILState state)
         {
             throw new NotImplementedException();
         }

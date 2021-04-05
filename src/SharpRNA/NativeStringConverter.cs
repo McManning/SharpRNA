@@ -19,7 +19,7 @@ namespace SharpRNA
                 && to.GetType() == typeof(string);
         }
 
-        public void GenerateIL(GeneratorState state)
+        public void GenerateIL(ILState state)
         {
             // char name[64]; -> string name;
             var il = state.Generator;

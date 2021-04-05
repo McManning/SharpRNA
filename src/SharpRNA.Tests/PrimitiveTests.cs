@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SharpRNA;
+using SharpRNA.Tests.Properties;
 
 #pragma warning disable CS0649
 
@@ -96,19 +98,30 @@ namespace SharpRNATests
         public Primitives_WithNestedStruct nested;
     }
 
+    [DNA("TestPrimitives")]
+    struct Primitives_WithUnsupportedField
+    {
+        [DNA("intVal")]
+        public Version version;
+    }
+
     [TestClass]
     public class PrimitiveTests
     {
+        private RNA rna;
+
         [ClassCleanup]
         public static void ClassCleanup()
         {
             Mocks.Dispose();
         }
 
-        [ClassInitialize]
-        public static void ClassInitialize(TestContext context)
+        [TestInitialize]
+        public void TestInitialize()
         {
-            DNAVersion.LoadEntitiesFromYAML(Mocks.YAML_PATH);
+            using var stream = new MemoryStream(Resources.MockDNA);
+            using var reader = new StreamReader(stream);
+            rna = RNA.FromDNA(reader);
         }
 
         [TestMethod]
@@ -118,7 +131,7 @@ namespace SharpRNATests
             var ptr = Mocks.GetNativeTestPrimitivesPtr();
 
             // Convert to a C# representation only parsing out primitives
-            var result = DNAVersion.FromDNA<Primitives>(ptr);
+            var result = rna.Transcribe<Primitives>(ptr);
 
             Assert.AreEqual(0.14f, result.myFloat);
             Assert.AreEqual(14, result.myInt);
@@ -132,7 +145,7 @@ namespace SharpRNATests
 
             // Same source type but converted to one with a nested struct
             // that should fit a sequence of values.
-            var result = DNAVersion.FromDNA<Primitives_WithNestedStruct>(ptr);
+            var result = rna.Transcribe<Primitives_WithNestedStruct>(ptr);
 
             Assert.AreEqual(15, result.flag);
 
@@ -151,7 +164,7 @@ namespace SharpRNATests
             // ALSO has a [DNA] attribute. This requires recursive
             // calls to generated IL - and tests how poorly I wrote
             // the callvirt opcodes.
-            var result = DNAVersion.FromDNA<Primitives_WithNestedPrimitives>(ptr);
+            var result = rna.Transcribe<Primitives_WithNestedPrimitives>(ptr);
 
             Assert.AreEqual(14, result.flag);
 
@@ -166,7 +179,7 @@ namespace SharpRNATests
             var ptr = Mocks.GetNativeMeshPtr();
 
             // Convert to a C# representation only parsing out primitives
-            var result = DNAVersion.FromDNA<Mesh_OnlyPrimitives>(ptr);
+            var result = rna.Transcribe<Mesh_OnlyPrimitives>(ptr);
 
             Assert.AreEqual((byte)'A', result.id0);
             Assert.AreEqual(5, result.totverts);
@@ -174,6 +187,14 @@ namespace SharpRNATests
             Assert.AreEqual(14, result.flag2);
             Assert.AreEqual(0.15f, result.flag3);
             Assert.AreEqual(result.mverts, (long)result.verticesPtr);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(RNAGeneratorException))]
+        public void UnsupportedField()
+        {
+            var ptr = Mocks.GetNativeTestNestedPrimitivesPtr();
+            rna.Transcribe<Primitives_WithUnsupportedField>(ptr);
         }
     }
 }

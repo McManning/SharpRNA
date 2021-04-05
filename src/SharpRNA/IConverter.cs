@@ -18,6 +18,6 @@ namespace SharpRNA
         /// State will contain everything needed to build the IL
         /// (local variable information, FieldInfo, DNA attribute values, etc)
         /// </summary>
-        public void GenerateIL(GeneratorState state);
+        public void GenerateIL(ILState state);
     }
 }
