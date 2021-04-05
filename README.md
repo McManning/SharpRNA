@@ -35,22 +35,21 @@ Entities:
     CType: bMeshData
     Size: 240       # Total size (in bytes) of the structure
     Fields:
-      layers:
+      mverts:
         Type: Pointer
-        CType: CustomDataLayer
+        CType: MVert
         Size: 8     # Size of the field (in bytes)
+      totverts:
+        Type: Primitive
+        CType: int
+        Size: 4
+        Offset: 8   # Offset (in bytes) from the struct's pointer
       typemap:
         Type: Array
         CType: int
         Size: 4
-        Offset: 8   # Offset (in bytes) from the struct's pointer
+        Offset: 12
         Count: 50
-      _pad:
-        Type: Array
-        CType: char
-        Size: 1
-        Offset: 208
-        Count: 4
       ...
 ```
 
@@ -65,15 +64,15 @@ public struct Mesh
     public int maxLayer;
 
     // More complex types using a custom RNA Converter
-    [DNA("layers", SizeField = "totlayer")]
-    public NativeArray<CustomDataLayer> layers;
+    [DNA("mvert", SizeField = "totverts")]
+    public NativeArray<Vertex> vertices;
 
     // And other data not copied from DNA
     public int otherUserData;
 }
 ```
 
-You can then instantiate an RNA instance from a DNA definition file and transcribe a native pointer containing your C data structure to your managed C# type:
+You can then instantiate an RNA instance from a DNA definition and read a native pointer containing your C data structure as your managed C# type:
 
 ```cs
 RNA myRNA = RNA.FromDNA(yaml);
@@ -148,7 +147,7 @@ SharpRNA
 
 ## Merging DNA
 
-Multiple DNA YAML files can be merged into one. This allows you to publish one DNA file alongside an application and let it pick the right set of DNA entities based on whatever version of the C application you are reading from.
+Multiple YAML files can be merged into one. This allows you to publish one DNA file alongside an application and let it pick the right set of entities based on whichever version of the C application you are reading from.
 
 ```sh
 SharpRNA
@@ -156,7 +155,7 @@ SharpRNA
     --output merged.yml
 ```
 
-When loading from a versioned DNA file you need to specify a version number that you want to load RNA for:
+When loading from a versioned DNA file you need to specify a version number that you want to instantiate RNA for:
 
 ```cs
 RNA RNAv920 = RNA.FromDNA(yaml, "9.20.0");
