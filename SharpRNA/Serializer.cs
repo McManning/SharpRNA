@@ -30,7 +30,7 @@ namespace SharpRNA
         }
     }
 
-    class Serializer
+    public class Serializer
     {
         /// <summary>
         /// Create a <see cref="DNA"/> from a YAML stream

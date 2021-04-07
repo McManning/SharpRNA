@@ -73,7 +73,12 @@ namespace SharpRNA
 
         public Entity FindEntityForCType(string ctype)
         {
-            return DNA.Entities.GetValueOrDefault(ctype);
+            if (DNA.Entities.TryGetValue(ctype, out var entity))
+            {
+                return entity;
+            }
+
+            return null;
         }
 
         public Entity FindEntityForType(Type type)
@@ -163,7 +168,7 @@ namespace SharpRNA
 
             // Note this will fail for unmarshallable types
             // e.g. the struct contains a NativeArray within it.
-            var size = Marshal.SizeOf<T>();
+            var size = Marshal.SizeOf(typeof(T));
 
             // Destination, source, then size on the stack
             il.Emit(OpCodes.Ldloca_S, localStruct);

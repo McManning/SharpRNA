@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using SharpRNA;
 
-namespace SharpRNATests
+namespace SharpRNA.Tests
 {
     public static class Mocks
     {

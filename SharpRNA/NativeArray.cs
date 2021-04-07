@@ -51,7 +51,7 @@ namespace SharpRNA
             else
             {
                 rnaDelegate = RNA<T>.GetCopyDelegate();
-                ElementSize = Marshal.SizeOf<T>();
+                ElementSize = Marshal.SizeOf(typeof(T));
             }
         }
 

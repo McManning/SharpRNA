@@ -1,7 +1,7 @@
 ﻿
 #pragma warning disable CS0649
 
-namespace SharpRNATests
+namespace SharpRNA.Tests
 {
     struct FloatVector3
     {

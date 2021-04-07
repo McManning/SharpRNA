@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Company>Chase McManning</Company>
+    <Product>SharpRNA.Tools</Product>
+    <Version>1.0.0-alpha</Version>
+    <Authors>Chase McManning</Authors>
+    <Description>SharpRNA tooling to generate DNA YAML from C headers</Description>
+    <Copyright>Copyright (c) 2021 Chase McManning</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/McManning/SharpRNA</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/McManning/SharpRNA</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CppAst" Version="0.7.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20574.7" />
+    <PackageReference Include="YamlDotNet" Version="11.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharpRNA\SharpRNA.csproj" />
+  </ItemGroup>
+
+</Project>

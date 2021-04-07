@@ -1,13 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.31105.61
+VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B6003035-C79A-4C4B-BBDA-BE3867A67A52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpRNA", "SharpRNA\SharpRNA.csproj", "{EC1E7933-DAAF-4333-B184-B294926E1297}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpRNA", "src\SharpRNA\SharpRNA.csproj", "{159F729B-1F91-4D74-8EA9-40903F22CFC8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpRNA.Tests", "SharpRNA.Tests\SharpRNA.Tests.csproj", "{D0FFACA2-DC07-4FBF-8F2D-096ABEEC07BD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpRNA.Tests", "src\SharpRNA.Tests\SharpRNA.Tests.csproj", "{400312B6-2F07-4A76-A018-E0A0C62299A6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpRNA.Tools", "SharpRNA.Tools\SharpRNA.Tools.csproj", "{4619C38D-74D3-47E1-AC9E-FAB642565069}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EC1E7933-DAAF-4333-B184-B294926E1297} = {EC1E7933-DAAF-4333-B184-B294926E1297}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,23 +18,23 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{159F729B-1F91-4D74-8EA9-40903F22CFC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{159F729B-1F91-4D74-8EA9-40903F22CFC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{159F729B-1F91-4D74-8EA9-40903F22CFC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{159F729B-1F91-4D74-8EA9-40903F22CFC8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{400312B6-2F07-4A76-A018-E0A0C62299A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{400312B6-2F07-4A76-A018-E0A0C62299A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{400312B6-2F07-4A76-A018-E0A0C62299A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{400312B6-2F07-4A76-A018-E0A0C62299A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC1E7933-DAAF-4333-B184-B294926E1297}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC1E7933-DAAF-4333-B184-B294926E1297}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC1E7933-DAAF-4333-B184-B294926E1297}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC1E7933-DAAF-4333-B184-B294926E1297}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0FFACA2-DC07-4FBF-8F2D-096ABEEC07BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0FFACA2-DC07-4FBF-8F2D-096ABEEC07BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0FFACA2-DC07-4FBF-8F2D-096ABEEC07BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0FFACA2-DC07-4FBF-8F2D-096ABEEC07BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4619C38D-74D3-47E1-AC9E-FAB642565069}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4619C38D-74D3-47E1-AC9E-FAB642565069}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4619C38D-74D3-47E1-AC9E-FAB642565069}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4619C38D-74D3-47E1-AC9E-FAB642565069}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{159F729B-1F91-4D74-8EA9-40903F22CFC8} = {B6003035-C79A-4C4B-BBDA-BE3867A67A52}
-		{400312B6-2F07-4A76-A018-E0A0C62299A6} = {B6003035-C79A-4C4B-BBDA-BE3867A67A52}
-	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {432F10C5-2C4C-450F-B765-7121EC0BCBC9}
+		SolutionGuid = {5E50E781-5498-4917-9491-D67F6916467A}
 	EndGlobalSection
 EndGlobal

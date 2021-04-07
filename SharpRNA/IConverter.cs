@@ -11,13 +11,13 @@ namespace SharpRNA
         /// <summary>
         /// Can this converter convert the given DNA entity to the given type.
         /// </summary>
-        public bool CanConvert(Entity from, Type to);
+        bool CanConvert(Entity from, Type to);
 
         /// <summary>
         /// Generate the IL required to perform the conversion.
         /// State will contain everything needed to build the IL
         /// (local variable information, FieldInfo, DNA attribute values, etc)
         /// </summary>
-        public void GenerateIL(ILState state);
+        void GenerateIL(ILState state);
     }
 }

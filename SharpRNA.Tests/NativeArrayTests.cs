@@ -6,7 +6,7 @@ using SharpRNA.Tests.Properties;
 
 #pragma warning disable CS0649
 
-namespace SharpRNATests
+namespace SharpRNA.Tests
 {
     [DNA("MVert")]
     struct Vertex

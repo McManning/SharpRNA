@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.IO;
-using YamlDotNet.Serialization;
+using SharpRNA;
 
-namespace SharpRNA
+namespace SharpRNA.Tools
 {
     class Args
     {
@@ -88,13 +88,13 @@ namespace SharpRNA
                 ),
                 new Option<bool>(
                     new[] { "--include-by-ref", "-r" },
-                    false,
+                    () => false,
                     "Should structs referenced by-ref in included structs also be included in " +
                     "the transcript YAML. This only applies if --include is used (Defaults to true)"
                 ),
                 new Option<string>(
                     new[] { "--dna-version", "-dv" },
-                    "1.0.0",
+                    () => "1.0.0",
                     "Output DNA version number in the form MAJOR.MINOR.REVISION (Defaults to 1.0.0)"
                 ),
                 new Option<List<FileInfo>>(
@@ -108,7 +108,7 @@ namespace SharpRNA
                 ),
                 new Option<bool>(
                     new[] { "--verbose", "-vv" },
-                    false,
+                    () => false,
                     "Show verbose output."
                 ),
             };
@@ -137,7 +137,7 @@ namespace SharpRNA
                         args.Verbose
                     );
 
-                    Serializer.ToYAML(
+                    SharpRNA.Serializer.ToYAML(
                         dna,
                         args.Output != null
                         ? args.Output.CreateText()

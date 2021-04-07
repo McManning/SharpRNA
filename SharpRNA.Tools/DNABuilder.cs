@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using CppAst;
 
-namespace SharpRNA
+namespace SharpRNA.Tools
 {
     /// <summary>
     /// Create a DNA YAML file from one or more source C headers

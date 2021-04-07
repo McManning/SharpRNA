@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SharpRNA;
 using SharpRNA.Tests.Properties;
 
-namespace SharpRNATests
+namespace SharpRNA.Tests
 {
     [TestClass]
     public class VersionTests

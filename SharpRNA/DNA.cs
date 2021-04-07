@@ -28,7 +28,7 @@ namespace SharpRNA
     /// <summary>
     /// Multiple versions of the same DNA bundled together
     /// </summary>
-    class DNAVersions
+    public class DNAVersions
     {
         public List<DNA> Versions { get; set; }
 
@@ -61,7 +61,7 @@ namespace SharpRNA
     {
         public DNA DNA { get; internal set; }
 
-        public EntityType Type { get; internal set; }
+        public EntityType Type { get; set; }
 
         // If array, CType = element type (primitive, struct, etc)
 
@@ -73,7 +73,7 @@ namespace SharpRNA
         ///     then this is the type of referenced elements.
         /// </para>
         /// </summary>
-        public string CType { get; internal set; }
+        public string CType { get; set; }
 
         /// <summary>
         /// Size of this entity in bytes.
@@ -84,21 +84,21 @@ namespace SharpRNA
         ///     is then <see cref="Size"/> * <see cref="Offset"/>.
         /// </para>
         /// </summary>
-        public int Size { get; internal set; }
+        public int Size { get; set; }
 
         /// <summary>
         /// If a field, this is the offset in bytes within the parent <see cref="Entity"/>.
         /// </summary>
-        public int Offset { get; internal set; }
+        public int Offset { get; set; }
 
         /// <summary>
         /// Number of elements if <see cref="Type"/> is <see cref="EntityType.Struct"/>.
         /// </summary>
-        public int Count { get; internal set; }
+        public int Count { get; set; }
 
         /// <summary>
         /// Child fields if <see cref="Type"/> is <see cref="EntityType.Struct"/>
         /// </summary>
-        public Dictionary<string, Entity> Fields { get; internal set; }
+        public Dictionary<string, Entity> Fields { get; set; }
     }
 }

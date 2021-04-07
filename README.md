@@ -1,4 +1,6 @@
 # SharpRNA
+[![Workflow Status][workflow-image]][workflow-url]
+[![NuGet Release][nuget-image]][nuget-url]
 
 Reinterpret C structures as managed C# code
 
@@ -160,3 +162,11 @@ When loading from a versioned DNA file you need to specify a version number that
 ```cs
 RNA RNAv920 = RNA.FromDNA(yaml, "9.20.0");
 ```
+
+
+<!-- Links: -->
+[workflow-image]: https://github.com/McManning/SharpRNA/actions/workflows/ci.yml/badge.svg
+[workflow-url]: https://github.com/McManning/SharpRNA/actions/workflows/ci.yml
+
+[nuget-image]: https://img.shields.io/nuget/v/SharpRNA.svg
+[nuget-url]: https://www.nuget.org/packages/SharpRNA/

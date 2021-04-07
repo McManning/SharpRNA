@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using SharpRNA;
 
-namespace SharpRNA
+namespace SharpRNA.Tools
 {
     /// <summary>
     /// Combine multiple DNA YAML files into a single versioned file.
@@ -17,11 +18,14 @@ namespace SharpRNA
 
             foreach (var file in files)
             {
-                using var stream = file.OpenRead();
-                using var reader = new StreamReader(stream);
-
-                var dna = Serializer.FromYAML(reader);
-                versions.Versions.Add(dna);
+                using (var stream = file.OpenRead())
+                {
+                    using (var reader = new StreamReader(stream))
+                    {
+                        var dna = Serializer.FromYAML(reader);
+                        versions.Versions.Add(dna);
+                    }
+                }
             }
 
             // sort versions
