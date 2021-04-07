@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, develop ]
+    paths-ignore: [ '**.md' ]
+  pull_request:
+    branches: [ master ]
+    paths-ignore: [ '**.md' ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+
+    - name: Install Dependencies
+      run: dotnet restore
+
+    - name: Build Packages
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run Tests
+      run: dotnet test --no-restore --nologo --verbosity minimal
