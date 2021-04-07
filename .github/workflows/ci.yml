@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ develop ]
     paths-ignore: [ '**.md' ]
   pull_request:
     branches: [ master ]
@@ -12,21 +12,30 @@ jobs:
   build:
     name: Build
     runs-on: windows-latest
+    env:
+      PROJECT_NAME: SharpRNA
+      SOLUTION_FILE: SharpRNA.sln
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup MSBuild.exe
+    - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v1.0.5
 
     - name: Restore NuGet Packages
-      run: nuget restore SharpRNA.sln
+      run: nuget restore ${{ env.SOLUTION_FILE }}
 
     - name: Build Packages
-      run: msbuild SharpRNA.sln /p:Configuration=Release
+      run: msbuild ${{ env.SOLUTION_FILE }} /p:Configuration=Release
 
-    - name: Run Tests
-      run: dotnet test --no-restore --nologo --verbosity minimal
+    - name: Run Test Suite
+      uses: zyborg/dotnet-tests-report@v1
+      with:
+        project_path: ${{ env.PROJECT_NAME }}.Tests
+        report_name: Test
+        report_title: ${{ env.PROJECT_NAME }}.Tests
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        set_check_status_from_test_outcome: True

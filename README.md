@@ -165,8 +165,8 @@ RNA RNAv920 = RNA.FromDNA(yaml, "9.20.0");
 
 
 <!-- Links: -->
-[workflow-image]: https://github.com/McManning/SharpRNA/actions/workflows/ci.yml/badge.svg
-[workflow-url]: https://github.com/McManning/SharpRNA/actions/workflows/ci.yml
+[workflow-image]: https://github.com/McManning/SharpRNA/actions/workflows/publish.yml/badge.svg
+[workflow-url]: https://github.com/McManning/SharpRNA/actions/workflows/publish.yml
 
 [nuget-image]: https://img.shields.io/nuget/v/SharpRNA.svg
 [nuget-url]: https://www.nuget.org/packages/SharpRNA/

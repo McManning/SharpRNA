@@ -10,11 +10,15 @@
     <Description>Reinterpret C structures as managed C# code</Description>
     <RepositoryUrl>https://github.com/McManning/SharpRNA</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.0.0-alpha</Version>
+    <Version>1.0.0</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.1|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
