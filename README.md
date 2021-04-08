@@ -96,13 +96,13 @@ For more usage examples, check out the test cases.
 This project can be built as a command line tool to generate DNA YAML files from C headers or to merge multiple DNA files into a single versioned DNA YAML.
 
 ```text
-# SharpRNA --help
+# SharpRNA.Tools --help
 
-SharpRNA:
+SharpRNA.Tools:
   Build DNA YAML from C headers
 
 Usage:
-  SharpRNA [options]
+  SharpRNA.Tools [options]
 
 Options:
   -f, --headers <headers>              C header files to scan
@@ -137,7 +137,7 @@ Options:
 The creation process will generate a DNA YAML file from one or more headers. Behind the scenes this uses [CppAst.NET](https://github.com/xoofx/CppAst.NET) to parse header files - so it will attempt to follow `#include` statements and resolve complex types as best it can.
 
 ```sh
-SharpRNA
+SharpRNA.Tools
     --headers /path/to/foo.h /path/to/bar.h
     --include FooStruct BarStruct FizzStruct BuzzStruct
     --dna-version 1.2.3
@@ -152,7 +152,7 @@ SharpRNA
 Multiple YAML files can be merged into one. This allows you to publish one DNA file alongside an application and let it pick the right set of entities based on whichever version of the C application you are reading from.
 
 ```sh
-SharpRNA
+SharpRNA.Tools
     --merge /path/to/dna-v920.yml /path/to/dna-v930.yml
     --output merged.yml
 ```
