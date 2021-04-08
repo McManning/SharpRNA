@@ -1,5 +1,5 @@
 # SharpRNA
-[![Workflow Status][workflow-image]][workflow-url]
+[![Release Status][workflow-image]][workflow-url]
 [![NuGet Release][nuget-image]][nuget-url]
 
 Reinterpret C structures as managed C# code
@@ -165,8 +165,8 @@ RNA RNAv920 = RNA.FromDNA(yaml, "9.20.0");
 
 
 <!-- Links: -->
-[workflow-image]: https://github.com/McManning/SharpRNA/actions/workflows/publish.yml/badge.svg
-[workflow-url]: https://github.com/McManning/SharpRNA/actions/workflows/publish.yml
+[workflow-image]: https://github.com/McManning/SharpRNA/actions/workflows/release.yml/badge.svg
+[workflow-url]: https://github.com/McManning/SharpRNA/actions/workflows/release.yml
 
 [nuget-image]: https://img.shields.io/nuget/v/SharpRNA.svg
 [nuget-url]: https://www.nuget.org/packages/SharpRNA/
