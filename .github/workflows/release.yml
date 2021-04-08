@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Dry run (true | false)'
+        required: True
+        default: 'false'
+  # push:
+  #   branches: [ master ]
+  #   paths-ignore: [ '**.md' ]
+
+jobs:
+  publish:
+    name: Publish Packages
+    runs-on: windows-latest
+    env:
+      PROJECT_NAME: SharpRNA
+      SOLUTION_FILE: SharpRNA.sln
+      RELEASE_ARCHIVE_SRC: SharpRNA.Tools/bin/Release/netcoreapp3.1/*
+      RELEASE_ARCHIVE_NAME: SharpRNA.Tools
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Check for Release
+      uses: cycjimmy/semantic-release-action@v2
+      id: semantic
+      with:
+        dry_run: True
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # MSBuild workflow to support net45
+
+    - name: Setup MSBuild
+      if: steps.semantic.outputs.new_release_published == 'true'
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Setup NuGet
+      if: steps.semantic.outputs.new_release_published == 'true'
+      uses: NuGet/setup-nuget@v1.0.5
+
+    - name: Restore NuGet Packages
+      if: steps.semantic.outputs.new_release_published == 'true'
+      run: nuget restore ${{ env.SOLUTION_FILE }}
+
+    - name: Build Packages
+      if: steps.semantic.outputs.new_release_published == 'true'
+      run: msbuild ${{ env.SOLUTION_FILE }} /p:Configuration=Release /p:Version=${{ steps.semantic.outputs.new_release_version }}
+
+    - name: Run Test Suite
+      if: steps.semantic.outputs.new_release_published == 'true'
+      uses: zyborg/dotnet-tests-report@v1
+      with:
+        project_path: ${{ env.PROJECT_NAME }}.Tests
+        report_name: Tests
+        report_title: ${{ env.PROJECT_NAME }}.Tests
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        fail_build_on_failed_tests: True
+
+    - name: Archive Packages
+      if: steps.semantic.outputs.new_release_published == 'true'
+      env:
+        # Cache to at `.github-release/APPNAME-1.2.3.zip`
+        PACKAGE_DST: .github-release/${{ env.RELEASE_ARCHIVE_NAME }}-${{ runner.os }}-${{ steps.semantic.outputs.new_release_version }}.zip
+      run: |
+        mkdir -p .github-release
+        powershell Compress-Archive -Path ${{ env.RELEASE_ARCHIVE_SRC }} -DestinationPath $Env:GITHUB_WORKSPACE/${{ env.PACKAGE_DST }}
+
+    - name: Publish to NuGet
+      if: steps.semantic.outputs.new_release_published == 'true' && github.event.inputs.dryRun == 'false'
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+    - name: Publish to GitHub
+      if: steps.semantic.outputs.new_release_published == 'true' && github.event.inputs.dryRun == 'false'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.semantic.outputs.new_release_version }}
+        body: ${{ steps.semantic.outputs.new_release_notes }}
+        draft: False
+        prerelease: False
+        files: .github-release/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Publish to GitHub
+    #   if: steps.semantic.outputs.new_release_published == 'true' && github.event.inputs.dryRun == 'false'
+    #   run: dotnet nuget push packages/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/McManning/index.json
